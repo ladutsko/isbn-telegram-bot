@@ -89,4 +89,7 @@ task copyDep(type: Copy) {
 
 build.dependsOn copyDep
 
+task stage(dependsOn: ['build', 'clean'])
+build.mustRunAfter clean
+
 defaultTasks 'run'
