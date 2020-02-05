@@ -1,0 +1,92 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'com.github.ladutsko'
+version = '1.0.0'
+description = 'ISBN Telegram Bot'
+
+repositories {
+    jcenter()
+}
+
+assert JavaVersion.current().isJava11Compatible()
+sourceCompatibility = JavaVersion.VERSION_11
+targetCompatibility = JavaVersion.VERSION_11
+
+ext['okhttp3.version']     =    '3.+'
+ext['telegrambot.version'] =  '4.6.0'
+ext['isbncore.version']    =    '1.+'
+ext['jaxb.version']        =  '2.3.2'
+ext['log4j.version']       = '2.13.0'
+ext['junit.version']       =  '5.5.2'
+
+configurations.all {
+    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+        if ('com.squareup.okhttp3' == details.requested.group) {
+            details.useVersion property('okhttp3.version')
+        }
+    }
+}
+
+dependencies {
+    implementation "com.github.pengrad:java-telegram-bot-api:${property('telegrambot.version')}"
+    implementation "com.github.ladutsko:isbn-core:${property('isbncore.version')}"
+    implementation "org.apache.logging.log4j:log4j-api:${property('log4j.version')}"
+
+    runtimeOnly "org.glassfish.jaxb:jaxb-runtime:${property('jaxb.version')}"
+    runtimeOnly "org.apache.logging.log4j:log4j-core:${property('log4j.version')}"
+    runtimeOnly "org.apache.logging.log4j:log4j-jul:${property('log4j.version')}"
+    runtimeOnly "org.apache.logging.log4j:log4j-slf4j-impl:${property('log4j.version')}"
+
+    testImplementation "org.junit.jupiter:junit-jupiter-api:${property('junit.version')}"
+
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${property('junit.version')}"
+}
+
+application {
+    mainClassName = 'com.github.ladutsko.telegram.isbnbot.Bot'
+}
+
+def isbnBotJvmOpts = ['-Djava.util.logging.manager=org.apache.logging.log4j.jul.LogManager']
+
+startScripts {
+    defaultJvmOpts = isbnBotJvmOpts
+}
+
+test {
+    useJUnitPlatform()
+
+    jvmArgs = isbnBotJvmOpts
+}
+
+jar {
+    into('META-INF') {
+        from files('LICENSE')
+    }
+
+    manifest {
+        attributes('Specification-Title'    : project.description,
+                   'Implementation-Title'   : project.name,
+                   'Implementation-Version' : project.version,
+                   'Implementation-Vendor'  : 'George Ladutsko',
+                   'Build-Timestamp'        : java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS),
+                   'Created-By'             : "Gradle ${gradle.gradleVersion}",
+                   'Build-Jdk'              : "${System.properties['java.version']} (${System.properties['java.vendor']} ${System.properties['java.vm.version']})",
+                   'Build-OS'               : "${System.properties['os.name']} ${System.properties['os.arch']} ${System.properties['os.version']}")
+    }
+}
+
+run {
+    jvmArgs = isbnBotJvmOpts
+}
+
+task copyDep(type: Copy) {
+    from configurations.runtimeClasspath
+    into "$buildDir/dependencies"
+}
+
+build.dependsOn copyDep
+
+defaultTasks 'run'
